@@ -6,11 +6,17 @@ https://medium.com/@prabhath_kiran/simple-rest-api-using-flask-and-peewee-3d75c7
 
 ## step one
 pip install virtualenv
+
 pip innstall virtualenvwrapper-win
+
 mkvirtualenv flaskmap
+
 workon flaskmap
+
 pip install flask
+
 pip install peewee
+
 pip install psycopg2
 
 ## create database
