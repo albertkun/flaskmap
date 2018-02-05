@@ -4,6 +4,10 @@ http://jonathansoma.com/tutorials/webapps/intro-to-flask/
 
 https://medium.com/@prabhath_kiran/simple-rest-api-using-flask-and-peewee-3d75c7bff515
 
+peewee docs:
+
+http://docs.peewee-orm.com/en/latest/peewee/quickstart.html#model-definition
+
 ## step one
 pip install virtualenv
 
