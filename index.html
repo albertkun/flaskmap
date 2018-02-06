@@ -5,6 +5,12 @@
 </head>
 <body>
 
-<h1>Cool Website about Stuff</h1>
+<h1>Cool Website about Stuff {{count}}</h1>
+<ul>
+	{% for event in events %}
+	<p>{{event.event_name}}</p>
+	{% endfor %}
+</ul>
+
 </body>
 </html>
