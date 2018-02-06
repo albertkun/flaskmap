@@ -7,7 +7,6 @@ app = Flask(__name__)
 @app.route('/')
 def index():
   events = Event.select().order_by(Event.date.asc())
-#  schools = School.select().order_by(School.school_name.asc())
   return render_template('index.html',events=events)
 
 if __name__ == '__main__':
