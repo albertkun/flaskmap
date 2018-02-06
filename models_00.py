@@ -16,19 +16,14 @@ class Event(Model):
   event_name = CharField()
   neighborhood = CharField()
   address = CharField()
-  city = CharField()
-  state_code = CharField()
   zipcode = FixedCharField(max_length=5)
   date = DateTimeField()
   attendees = IntegerField()
   url = CharField()
-  lat = DecimalField(null = True)
-  lon = DecimalField(null = True)
+  lat = DecimalField()
+  lon = DecimalField()
 
-  def full_address(self):
-    return "{},{},{}".format(self.address,self.city,self.state_code)
 
-  
   class Meta:
     # data is coming from schools.db
     database = db

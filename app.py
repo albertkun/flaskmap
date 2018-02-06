@@ -1,10 +1,14 @@
-from flask import Flask, render_template 
-import webbrowser
+#from config import *
+from flask import Flask, render_template
+from models import *
+
 app = Flask(__name__)
 
 @app.route('/')
 def index():
-  return render_template('index.html')
+  events = Event.select().order_by(Event.date.asc())
+#  schools = School.select().order_by(School.school_name.asc())
+  return render_template('index.html',events=events)
 
 if __name__ == '__main__':
     app.run(debug=True)

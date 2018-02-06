@@ -22,13 +22,12 @@ class Event(Model):
   date = DateTimeField()
   attendees = IntegerField()
   url = CharField()
-  lat = DecimalField(null = True)
-  lon = DecimalField(null = True)
+  lat = DecimalField()
+  lon = DecimalField()
 
   def full_address(self):
-    return "{},{},{}".format(self.address,self.city,self.state_code)
-
-  
+    return "{},{},{},{}".format(self.address,self.city,self.state_code,
+                                self.zipcode)
   class Meta:
     # data is coming from schools.db
     database = db
