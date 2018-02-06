@@ -11,7 +11,8 @@ http://docs.peewee-orm.com/en/latest/peewee/quickstart.html#model-definition
 ## step one
 pip install virtualenv
 
-pip innstall virtualenvwrapper-win
+pip install virtualenvwrapper (for Linux/Macs)
+pip install virtualenvwrapper-win (for windows)
 
 mkvirtualenv flaskmap
 
