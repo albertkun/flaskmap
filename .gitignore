@@ -1,6 +1,7 @@
 
 *.h
 Lib/
+Static/
 Include/
 Scripts/
 tcl/
