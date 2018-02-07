@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="../static/css/bootstrap.min.css">
+    <!-- <link rel="stylesheet" href="../static/css/cover.css"> -->
+  </head>
+  <body class="text-center">
+
+    <div class="cover-container d-flex h-100 p-3 mx-auto flex-column">
+      <header class="masthead mb-auto">
+        <div class="inner">
+          <div class="masthead-brand"><p class="lead"><b style="font-size: 36px">Welcome to Jane Map</b> Let's get started on electing a progressive mayor for San Francisco. <button type="button" class="btn btn-primary">Host an Event</button></p>
+
+        </div>
+      </header>
+
+      <main role="main" class="inner cover">
+	    {% block content %}
+	    {% endblock %}
+      </main>
+
+      <footer class="mastfoot mt-auto">
+        <div class="inner">
+        </div>
+      </footer>
+    </div>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="../static/js/jquery-3.3.1.min.js"></script>
+    <script src="../static/js/popper.min.js"></script>
+    <script src="../static/js/bootstrap.min.js"></script>
+  </body>
+</html>
