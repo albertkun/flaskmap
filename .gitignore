@@ -1,3 +1,5 @@
 
 *.h
-Lib/_weakrefset.pyc
+Lib/
+Include/
+tcl/
