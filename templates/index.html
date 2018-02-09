@@ -18,6 +18,11 @@
 
 </head>
 <body>
+	<header class="masthead mb-auto">
+		<div class="inner">
+		  <div class="masthead-brand"><p class="lead"><b style="font-size: 36px">Welcome to Jane Map</b> Let's get started on electing a progressive mayor for San Francisco. <a href="/host.html"><button type="button" class="btn btn-primary">Host an Event</button></a></p>
+		</div>
+	</header>
 
 
 
@@ -32,23 +37,37 @@
 	}).addTo(map);
 
 
-	function addMarker(lat,lon,name){
+	function addMarker(markerData){
 	// Add marker to map at click location; add popup window
-		console.log(lat,lon);
+		console.log(markerData.lat,markerData.lon);
+
+		colors = {
+			official: "#AF1E23",
+			gotv: 'black'	
+		}
+
 		markerOptions=
 				{
                     radius: 5,
-                    fillColor: "#AF1E23",
-                    color: "#FFFFFF",
+                    fillColor: colors[markerData.type],
+                    color: "white",
                     weight: 1,
                     opacity: 1,
                     fillOpacity: 0.9
                 }
-		L.circleMarker([lat,lon],markerOptions).bindPopup("<b>"+name+"</b>").addTo(map);
+
+		L.circleMarker([markerData.lat,markerData.lon],markerOptions).bindPopup("<b>"+markerData.name+"</b>").addTo(map);
 	}
 	var popup = L.popup();
+
 	{% for event in events %}
-		addMarker({{event.lat}},{{event.lon}},"{{event.event_name}}");
+		markerData ={
+			lat: {{event.lat}},
+			lon: {{event.lon}},
+			name: "{{event.event_name}}",
+			type: "{{event.event_type}}"
+		}
+		addMarker(markerData);
 	{% endfor %}
 </script>
 
