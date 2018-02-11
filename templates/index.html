@@ -20,7 +20,7 @@
 <body>
 	<header class="masthead mb-auto">
 		<div class="inner">
-		  <div class="masthead-brand"><p class="lead"><b style="font-size: 36px">Welcome to Jane Map</b> Let's get started on electing a progressive mayor for San Francisco. <a href="/host.html"><button type="button" class="btn btn-primary">Host an Event</button></a></p>
+		  <div class="masthead-brand"><p class="lead"><b style="font-size: 36px">Jane Map</b> Let's get started on electing a progressive mayor for San Francisco. <a href="/host"><button type="button" class="btn btn-primary">Host an Event</button></a></p>
 		</div>
 	</header>
 
@@ -43,7 +43,13 @@
 
 		colors = {
 			official: "#AF1E23",
-			gotv: 'black'	
+			canvass:  'black',
+			phone: 'black',
+			voter: 'black',
+			meeting: 'black',
+			fund: 'black',
+			rally: 'black',
+			other: 'green'
 		}
 
 		markerOptions=
@@ -55,7 +61,7 @@
                     opacity: 1,
                     fillOpacity: 0.9
                 }
-
+        console.log(markerOptions)
 		L.circleMarker([markerData.lat,markerData.lon],markerOptions).bindPopup("<b>"+markerData.name+"</b>").addTo(map);
 	}
 	var popup = L.popup();
