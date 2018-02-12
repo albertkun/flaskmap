@@ -1,0 +1,7 @@
+flask
+peewee
+psycopg2
+flask-wtf
+flask-marshmallow
+simplejson
+requests
