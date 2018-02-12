@@ -1,13 +1,29 @@
 #from config import *
 from flask import Flask, jsonify, render_template, request
+import simplejson
 from playhouse.shortcuts import model_to_dict, dict_to_model
+from flask_marshmallow import Marshmallow
+
+# define the app here
 app = Flask(__name__)
 
+# here is the marshmallow app definition for the api
+ma = Marshmallow(app)
 
-# from flask import Flask, render_template, request
+# bring in the table models
 from models import *
 
-app = Flask(__name__)
+### api schema begins here ###
+class bookingSchema(ma.Schema):
+    class Meta:
+        # Fields to expose through api
+        fields = ('fid', 'desc_', 'slug','home_addre','x','y')
+        json_module = simplejson
+
+booking_schema = bookingSchema()
+bookings_schema = bookingSchema(many=True)
+
+### api schema ends here ###
 
 def basicQuery():
 	global bookings
@@ -31,15 +47,23 @@ def index():
 # 	count = lapd.select().where(lapd.slug == slug).count()
 # 	return render_template('index.html',bookings=bookings,count=count,neighborhoods = neighborhoods)
 
-@app.route('/_neighborhood')
-def neighborhood():
-	slug = request.args.get('slug')
-	# return slug
-	bookings = lapd.select().where(lapd.slug == slug)
-	# json_data = json.dumps(model_to_dict(bookings))
-	# return json_data
-	# return jsonify(model_to_dict(bookings))
-	return BinaryJSONField({'rows':[model_to_dict(booking) for booking in bookings]})
+@app.route("/<neighborhood>/bookings/", methods=['GET'])
+def get_events(slug):
+    all_bookings = lapd.select().where(lapd.slug == slug)
+    result = bookings_schema.dump(all_bookings)
+    return jsonify(result.data)
+
+
+### not needed anymore ###
+# @app.route('/_neighborhood')
+# def neighborhood():
+# 	slug = request.args.get('slug')
+# 	# return slug
+# 	bookings = lapd.select().where(lapd.slug == slug)
+# 	# json_data = json.dumps(model_to_dict(bookings))
+# 	# return json_data
+# 	# return jsonify(model_to_dict(bookings))
+# 	return BinaryJSONField({'rows':[model_to_dict(booking) for booking in bookings]})
 
 @app.route('/_add_numbers')
 def add_numbers():
