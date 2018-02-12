@@ -47,7 +47,7 @@ def index():
 # 	count = lapd.select().where(lapd.slug == slug).count()
 # 	return render_template('index.html',bookings=bookings,count=count,neighborhoods = neighborhoods)
 
-@app.route("/<neighborhood>/bookings/", methods=['GET'])
+@app.route("/<slug>/bookings/", methods=['GET'])
 def get_events(slug):
     all_bookings = lapd.select().where(lapd.slug == slug)
     result = bookings_schema.dump(all_bookings)
