@@ -1,58 +1,242 @@
 {% extends "base.html" %}
 {% block content %}
 
+<!-- html -->
+<div class="container-fluid">
+	<div class="row justify-content-md-center">
+		<div class="col-md-auto">
+			<select class="form-control" id="neighborhood">
+					<option>--Choose a neighborhood--</option>
+				{% for neighborhood in neighborhoods %}
+					<option>{{neighborhood.slug}}</option>
+				{% endfor %}
+			</select>
+		</div>
+	</div>
+	<div class="row justify-content-md-center">
+		<div class="col-md-auto">
+			<button id="button-w" type="button" class="btn btn-sm btn-primary">White</button>
+			<button id="button-b" type="button" class="btn btn-sm btn-success">Black</button>
+			<button id="button-h" type="button" class="btn btn-sm btn-danger">Hispanic</button>
+			<button id="button-o" type="button" class="btn btn-sm btn-warning">Other</button>
+		</div>
+	</div>
+	<div class="row justify-content-md-center">
+		<div class="col-8">
+			<div class="wrapper-" id="mapid" style="width: 100%; height: 600px;"></div>
+		</div>
+		<div class="col-4" style="background: gainsboro">
+			Data and Charts
+			<div id="chart" style="width: 400px; height: 500px;"></div>
+		</div>
 
-<!DOCTYPE html>
-<html>
-<head>
-	<title>Jane Map</title>
+	</div>
 
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	
-	<link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />
+</div>
 
-    <link rel="stylesheet" href="../static/css/leaflet.css"/>
-    <script src="../static/js/leaflet.js"></script>
-
-
-</head>
-<body>
-
-
-
-<div class="wrapper-" id="mapid" style="width: 100%; height: 400px;"></div>
+<!-- javascript -->
 <script>
 
-	var mapCoords = [37.770715, -122.433421]
-	var map = L.map('mapid').setView(mapCoords, 12);
-	L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
-		maxZoom: 19,
-		attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, Tiles courtesy of <a href="http://hot.openstreetmap.org/" target="_blank">Humanitarian OpenStreetMap Team</a>'
+google.charts.load('current', {'packages':['corechart']});
+google.charts.setOnLoadCallback(start);
+
+function start()
+{
+
+	console.log('init')
+
+	// basemap
+	var Stamen_TonerLite = L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/toner-lite/{z}/{x}/{y}.{ext}', {
+		attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+		subdomains: 'abcd',
+		minZoom: 0,
+		maxZoom: 20,
+		ext: 'png'
 	}).addTo(map);
 
-
-	function addMarker(lat,lon,name){
-	// Add marker to map at click location; add popup window
-		console.log(lat,lon);
-		markerOptions=
-				{
-                    radius: 5,
-                    fillColor: "#AF1E23",
-                    color: "#FFFFFF",
-                    weight: 1,
-                    opacity: 1,
-                    fillOpacity: 0.9
-                }
-		L.circleMarker([lat,lon],markerOptions).bindPopup("<b>"+name+"</b>").addTo(map);
-	}
 	var popup = L.popup();
-	{% for event in events %}
-		addMarker({{event.lat}},{{event.lon}},"{{event.event_name}}");
-	{% endfor %}
-</script>
 
-	
-</body>
-</html>
+
+	{% for booking in bookings %}
+		if(neighborhood == '{{booking.slug}}')
+		{
+			options = {
+				lat : "{{booking.y}}",
+				lon : "{{booking.x}}",
+				name : "{{booking.home_addre}}",
+				race : "{{booking.desc_}}"
+			}
+			// addMarker({{booking.lat}},{{booking.lon}},"{{booking.booking_name}}");
+			addMarker(options);
+		}
+	{% endfor %}
+
+	allMarkers.count = allMarkers.wMarkers.length + allMarkers.bMarkers.length + allMarkers.hMarkers.length + allMarkers.oMarkers.length;
+
+	var chartdata = [
+		["race","count"],
+		[ "White",allMarkers.wMarkers.length ],
+		[ "Black",allMarkers.bMarkers.length ],
+		[ "Hispanic",allMarkers.hMarkers.length ],
+		[ "Other",allMarkers.oMarkers.length]
+	]
+
+ 	drawChart(chartdata);
+
+	$('#button-w').html('White: '+allMarkers.wMarkers.length).css('width',allMarkers.wMarkers.length/allMarkers.count*800).hover(function(){wLayer.addTo(map);map.removeLayer(bLayer);map.removeLayer(hLayer);map.removeLayer(oLayer);},function(){bLayer.addTo(map);hLayer.addTo(map);oLayer.addTo(map)})
+	$('#button-b').html('Black: '+allMarkers.bMarkers.length).css('width',allMarkers.bMarkers.length/allMarkers.count*800).hover(function(){bLayer.addTo(map);map.removeLayer(wLayer);map.removeLayer(hLayer);map.removeLayer(oLayer);},function(){wLayer.addTo(map);hLayer.addTo(map);oLayer.addTo(map)})
+	$('#button-h').html('Hispanic: '+allMarkers.hMarkers.length).css('width',allMarkers.hMarkers.length/allMarkers.count*800).hover(function(){hLayer.addTo(map);map.removeLayer(bLayer);map.removeLayer(wLayer);map.removeLayer(oLayer);},function(){bLayer.addTo(map);wLayer.addTo(map);oLayer.addTo(map)})
+	$('#button-o').html('Others: '+allMarkers.oMarkers.length).css('width',allMarkers.oMarkers.length/allMarkers.count*800).hover(function(){oLayer.addTo(map);map.removeLayer(bLayer);map.removeLayer(hLayer);map.removeLayer(wLayer);},function(){bLayer.addTo(map);hLayer.addTo(map);wLayer.addTo(map)})
+
+}
+
+var mapCoords = [34.0409135,-118.2433899]
+var map = L.map('mapid').setView(mapCoords, 13);
+var neighborhood = "downtown";
+
+var allMarkers = {
+	wMarkers: [],
+	bMarkers: [],
+	hMarkers: [],
+	oMarkers: []
+}
+
+var wLayer = new L.LayerGroup();
+var bLayer = new L.LayerGroup();
+var hLayer = new L.LayerGroup();
+var oLayer = new L.LayerGroup();
+
+var colors = ['#4E4BBD','#B9C34F','#FE2226','#FFBD3A']
+
+var chartdata = [];
+
+// let's get this show on the road
+// $( document ).ready(function() {
+
+
+
+
+// 	$('#neighborhood').on('change', function(){
+// 		var selected = $(this).find("option:selected").val();
+// 		console.log(selected)
+// 		$.getJSON('/_neighborhood',{ slug: selected },function(data){
+// 			console.log('data for '+selected)
+// 			console.log(data)
+// 		})
+// 		// alert(selected);
+// 	});
+// 	// google.charts.setOnLoadCallback(init());
+
+// 	init();
+// 	drawChart;
+// });
+
+var drawChart = function(chartdata)
+{
+        var chartdata = google.visualization.arrayToDataTable(chartdata);
+
+        // console.log(chartdata)
+
+        var options = {
+          title: 'Incarceration by race'
+        };
+
+        var chart = new google.visualization.PieChart(document.getElementById('chart'));
+
+        chart.draw(chartdata, options);
+}
+
+var getMarkers = function()
+{
+	// clear existing markers
+	wLayer.clearLayers();
+	bLayer.clearLayers();
+	hLayer.clearLayers();
+	oLayer.clearLayers();
+
+	// get new markers
+	{% for booking in bookings %}
+		if(neighborhood == '{{booking.slug}}')
+		{
+			options = {
+				lat : "{{booking.y}}",
+				lon : "{{booking.x}}",
+				name : "{{booking.home_addre}}",
+				race : "{{booking.desc_}}"
+			}
+			// addMarker({{booking.lat}},{{booking.lon}},"{{booking.booking_name}}");
+			addMarker(options);
+		}
+	{% endfor %}
+
+}
+
+function addMarker(options){
+// Add marker to map at click location; add popup window
+	// console.log(options.lat,options.lon);
+
+	var categories = {
+		W: {
+			color: '#4E4BBD',
+			layer: wLayer
+		},
+		
+
+	}
+
+	if(options.race == 'W')
+	{
+		color = '#4E4BBD'
+		layer2add = wLayer
+	}
+	else if (options.race == 'B')
+	{
+		color = '#B9C34F'
+		layer2add = bLayer
+	}
+	else if (options.race == 'H')
+	{
+		color = '#FE2226'
+		layer2add = hLayer
+	}
+	else 
+	{
+		color = '#FFBD3A'
+		layer2add = oLayer
+	}
+
+	markerOptions=
+			{
+				radius: 8,
+				fillColor: color,
+				// fillColor: categories.options.race.color,
+				color: "white",
+				weight: 1,
+				opacity: 1,
+				fillOpacity: 0.9
+			}
+	thisMarker = L.circleMarker([options.lat,options.lon],markerOptions).bindPopup("<b>"+options.name+"</b>").addTo(layer2add).addTo(map);
+
+	if(options.race == 'W')
+	{
+		allMarkers.wMarkers.push(thisMarker);
+	}
+	else if (options.race == 'B')
+	{
+		allMarkers.bMarkers.push(thisMarker);
+	}
+	else if (options.race == 'H')
+	{
+		allMarkers.hMarkers.push(thisMarker);
+	}
+	else 
+	{
+		allMarkers.oMarkers.push(thisMarker);
+	}
+
+
+}
+
+
+</script>
 {% endblock %}

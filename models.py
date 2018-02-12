@@ -3,36 +3,26 @@ from peewee import *
 
 # Connect to the PostgresqlDatabase
 
-db = PostgresqlDatabase('flaskmap', user='postgres', password='secret',
-                           host='127.0.0.1', port=5432)
+db = PostgresqlDatabase('postgres', user='postgres', password='yoh',
+                           host='localhost', port=5432)
 # Connect to our database.
 db.connect()
 
-# Define what a 'Event' is
-class Event(Model):
+class lapd(Model):
   # These are all the fields it has
   # match up CharField/IntegerField/etc with correct type
-  uid = CharField(primary_key=True) # primary key = unique id
-  event_name = CharField()
-  neighborhood = CharField()
-  address = CharField()
-  city = CharField()
-  state_code = CharField()
-  zipcode = FixedCharField(null = True,max_length=5)
-  date = DateTimeField()
-  attendees = IntegerField()
-  url = CharField()
-  lat = DecimalField(null = True)
-  lon = DecimalField(null = True)
 
-  def full_address(self):
-    return "{},{},{}".format(self.address,self.city,self.state_code)
-
+  fid = CharField(primary_key=True) # primary key = unique id
+  desc_ = CharField()
+  slug = CharField()
+  home_addre = CharField()
+  x = DecimalField(null = True)
+  y = DecimalField(null = True)
   
   class Meta:
     # data is coming from schools.db
     database = db
     # and it's in the table called 'events'
-    db_table = 'events'
+    db_table = 'lapd_2016'
 
 
