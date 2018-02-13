@@ -30,6 +30,7 @@ def basicQuery():
 	global neighborhoods
 
 	bookings = lapd.select()
+    # neighborhoods = lapd.select(lapd.slug).distinct().order_by(lapd.slug.asc())
 	neighborhoods = lapd.select(lapd.slug).distinct().order_by(lapd.slug.asc())
 	# bookings = lapd.select().where(lapd.slug == "downtown")
 

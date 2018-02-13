@@ -1,38 +1,44 @@
 {% extends "base.html" %}
 {% block content %}
 
-<!-- html -->
-<div class="container-fluid">
-	<div class="row justify-content-md-center">
-		<div class="col-md-auto">
-			<select class="form-control" id="neighborhood">
-					<option>--Choose a neighborhood--</option>
-				{% for neighborhood in neighborhoods %}
-					<option>{{neighborhood.slug}}</option>
-				{% endfor %}
-			</select>
-		</div>
-	</div>
-	<div class="row justify-content-md-center">
-		<div class="col-md-auto">
-			<button id="button-w" type="button" class="btn btn-sm btn-primary">White</button>
-			<button id="button-b" type="button" class="btn btn-sm btn-success">Black</button>
-			<button id="button-h" type="button" class="btn btn-sm btn-danger">Hispanic</button>
-			<button id="button-o" type="button" class="btn btn-sm btn-warning">Other</button>
-		</div>
-	</div>
-	<div class="row justify-content-md-center">
-		<div class="col-8">
-			<div class="wrapper-" id="mapid" style="width: 100%; height: 600px;"></div>
-		</div>
-		<div class="col-4" style="background: gainsboro">
-			Data and Charts
-			<div id="chart" style="width: 400px; height: 500px;"></div>
-		</div>
+
+<style>
+	body { margin:0; padding:0; }
+	#map { position:absolute; top:0; bottom:0; width:100%; }
+
+
+	.map-overlay {
+		z-index: 9999;
+		font: 12px/25px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+		position: absolute;
+		width: 350px;
+		top: 10px;
+		right: 10px;
+		padding: 0px;
+		opacity: 0.9;
+	}
+
+</style>
+
+
+<div id="map"></div>
+
+<div class="map-overlay top card">
+	<div class="card-header">
+		<select class="form-control" id="neighborhood">
+				<option>--Choose a neighborhood--</option>
+			{% for neighborhood in neighborhoods %}
+				<option>{{neighborhood.slug}}</option>
+			{% endfor %}
+		</select>
 
 	</div>
-
+	<div class="card-body" style="padding:10px 0px;margin: auto;">
+		<h6>Incarceration by race</h6>
+		<div id="chart" style="width: 300px; height: 300px;"></div>
+	</div>
 </div>
+
 
 <!-- javascript -->
 <script>
@@ -40,59 +46,11 @@
 google.charts.load('current', {'packages':['corechart']});
 google.charts.setOnLoadCallback(start);
 
-function start()
-{
-
-	console.log('init')
-
-	// basemap
-	var Stamen_TonerLite = L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/toner-lite/{z}/{x}/{y}.{ext}', {
-		attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-		subdomains: 'abcd',
-		minZoom: 0,
-		maxZoom: 20,
-		ext: 'png'
-	}).addTo(map);
-
-	var popup = L.popup();
-
-
-	{% for booking in bookings %}
-		if(neighborhood == '{{booking.slug}}')
-		{
-			options = {
-				lat : "{{booking.y}}",
-				lon : "{{booking.x}}",
-				name : "{{booking.home_addre}}",
-				race : "{{booking.desc_}}"
-			}
-			// addMarker({{booking.lat}},{{booking.lon}},"{{booking.booking_name}}");
-			addMarker(options);
-		}
-	{% endfor %}
-
-	allMarkers.count = allMarkers.wMarkers.length + allMarkers.bMarkers.length + allMarkers.hMarkers.length + allMarkers.oMarkers.length;
-
-	var chartdata = [
-		["race","count"],
-		[ "White",allMarkers.wMarkers.length ],
-		[ "Black",allMarkers.bMarkers.length ],
-		[ "Hispanic",allMarkers.hMarkers.length ],
-		[ "Other",allMarkers.oMarkers.length]
-	]
-
- 	drawChart(chartdata);
-
-	$('#button-w').html('White: '+allMarkers.wMarkers.length).css('width',allMarkers.wMarkers.length/allMarkers.count*800).hover(function(){wLayer.addTo(map);map.removeLayer(bLayer);map.removeLayer(hLayer);map.removeLayer(oLayer);},function(){bLayer.addTo(map);hLayer.addTo(map);oLayer.addTo(map)})
-	$('#button-b').html('Black: '+allMarkers.bMarkers.length).css('width',allMarkers.bMarkers.length/allMarkers.count*800).hover(function(){bLayer.addTo(map);map.removeLayer(wLayer);map.removeLayer(hLayer);map.removeLayer(oLayer);},function(){wLayer.addTo(map);hLayer.addTo(map);oLayer.addTo(map)})
-	$('#button-h').html('Hispanic: '+allMarkers.hMarkers.length).css('width',allMarkers.hMarkers.length/allMarkers.count*800).hover(function(){hLayer.addTo(map);map.removeLayer(bLayer);map.removeLayer(wLayer);map.removeLayer(oLayer);},function(){bLayer.addTo(map);wLayer.addTo(map);oLayer.addTo(map)})
-	$('#button-o').html('Others: '+allMarkers.oMarkers.length).css('width',allMarkers.oMarkers.length/allMarkers.count*800).hover(function(){oLayer.addTo(map);map.removeLayer(bLayer);map.removeLayer(hLayer);map.removeLayer(wLayer);},function(){bLayer.addTo(map);hLayer.addTo(map);wLayer.addTo(map)})
-
-}
+var mdh = {};
+mdh.neighborhood = "downtown";
 
 var mapCoords = [34.0409135,-118.2433899]
-var map = L.map('mapid').setView(mapCoords, 13);
-var neighborhood = "downtown";
+var map = L.map('map').setView(mapCoords, 13);
 
 var allMarkers = {
 	wMarkers: [],
@@ -101,49 +59,106 @@ var allMarkers = {
 	oMarkers: []
 }
 
-var wLayer = new L.LayerGroup();
-var bLayer = new L.LayerGroup();
-var hLayer = new L.LayerGroup();
-var oLayer = new L.LayerGroup();
+var wLayer = new L.featureGroup();
+var bLayer = new L.featureGroup();
+var hLayer = new L.featureGroup();
+var oLayer = new L.featureGroup();
 
 var colors = ['#4E4BBD','#B9C34F','#FE2226','#FFBD3A']
 
 var chartdata = [];
 
-// let's get this show on the road
-// $( document ).ready(function() {
+function start()
+{
+
+	$('#neighborhood').on('change', function(){
+		var selected = $(this).find("option:selected").val();
+		console.log(selected)
+		mdh.neighborhood = selected;
+		getMarkers();
+
+	});
+
+	console.log('init')
+
+	// basemap
+
+	mdh.basemap_bw = L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png', {
+		attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+		subdomains: 'abcd',
+		maxZoom: 17
+	});
+	mdh.basemap_sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+		maxZoom: 17});
+	
+	mdh.basemap_sat.addTo(map);
 
 
+	var popup = L.popup();
 
-
-// 	$('#neighborhood').on('change', function(){
-// 		var selected = $(this).find("option:selected").val();
-// 		console.log(selected)
-// 		$.getJSON('/_neighborhood',{ slug: selected },function(data){
-// 			console.log('data for '+selected)
-// 			console.log(data)
-// 		})
-// 		// alert(selected);
-// 	});
-// 	// google.charts.setOnLoadCallback(init());
-
-// 	init();
-// 	drawChart;
-// });
+	getMarkers();
+}
 
 var drawChart = function(chartdata)
 {
-        var chartdata = google.visualization.arrayToDataTable(chartdata);
+	mdh.chartdata = google.visualization.arrayToDataTable(chartdata);
 
-        // console.log(chartdata)
+	console.log(mdh.chartdata)
 
-        var options = {
-          title: 'Incarceration by race'
-        };
+	var options = {
+		// title: 'Incarceration by race',
+		pieSliceText: 'label',
+		legend: 'none',
+		colors: colors,
+		chartArea:{top:10,width:'100%',height:'80%'},
+		is3D: true
+	};
 
-        var chart = new google.visualization.PieChart(document.getElementById('chart'));
+	var chart = new google.visualization.PieChart(document.getElementById('chart'));
 
-        chart.draw(chartdata, options);
+	chart.draw(mdh.chartdata, options);
+	google.visualization.events.addListener(chart, 'onmouseover', function(data){
+		hoverPie(mdh.chartdata.getFormattedValue(data.row,0))
+	});
+	google.visualization.events.addListener(chart, 'onmouseout', function(data){
+		wLayer.addTo(map);
+		bLayer.addTo(map);
+		hLayer.addTo(map);
+		oLayer.addTo(map);
+	});
+}
+
+var hoverPie = function(race)
+{
+	if(race == 'White')
+	{
+		wLayer.addTo(map);
+		map.removeLayer(bLayer);
+		map.removeLayer(hLayer);
+		map.removeLayer(oLayer);
+	}
+	else if (race == 'Black')
+	{
+		bLayer.addTo(map);
+		map.removeLayer(wLayer);
+		map.removeLayer(hLayer);
+		map.removeLayer(oLayer);
+	}
+	else if (race == 'Hispanic')
+	{
+		hLayer.addTo(map);
+		map.removeLayer(bLayer);
+		map.removeLayer(wLayer);
+		map.removeLayer(oLayer);
+	}
+	else if (race == 'Other')
+	{
+		oLayer.addTo(map);
+		map.removeLayer(bLayer);
+		map.removeLayer(hLayer);
+		map.removeLayer(wLayer);
+	}
+
 }
 
 var getMarkers = function()
@@ -154,27 +169,40 @@ var getMarkers = function()
 	hLayer.clearLayers();
 	oLayer.clearLayers();
 
-	// get new markers
-	{% for booking in bookings %}
-		if(neighborhood == '{{booking.slug}}')
-		{
-			options = {
-				lat : "{{booking.y}}",
-				lon : "{{booking.x}}",
-				name : "{{booking.home_addre}}",
-				race : "{{booking.desc_}}"
-			}
-			// addMarker({{booking.lat}},{{booking.lon}},"{{booking.booking_name}}");
-			addMarker(options);
-		}
-	{% endfor %}
+	allMarkers.wMarkers = [];
+	allMarkers.bMarkers = [];
+	allMarkers.hMarkers = [];
+	allMarkers.oMarkers = [];
 
+	$.getJSON("/"+mdh.neighborhood+"/bookings",function(data){
+		$.each(data,function(i,val){
+			options = {
+				lat : val.y,
+				lon : val.x,
+				name : val.home_addre,
+				race : val.desc_
+			}
+			addMarker(options);
+		})
+
+		allMarkers.count = allMarkers.wMarkers.length + allMarkers.bMarkers.length + allMarkers.hMarkers.length + allMarkers.oMarkers.length;
+
+		chartdata = [
+			["race","count"],
+			[ "White",allMarkers.wMarkers.length ],
+			[ "Black",allMarkers.bMarkers.length ],
+			[ "Hispanic",allMarkers.hMarkers.length ],
+			[ "Other",allMarkers.oMarkers.length]
+		]
+		// console.log(chartdata)
+	 	drawChart(chartdata);
+
+		map.fitBounds(wLayer.getBounds())
+	})
 }
 
 function addMarker(options){
-// Add marker to map at click location; add popup window
-	// console.log(options.lat,options.lon);
-
+	// Add marker to map at click location; add popup window
 	var categories = {
 		W: {
 			color: '#4E4BBD',
@@ -206,16 +234,22 @@ function addMarker(options){
 	}
 
 	markerOptions=
-			{
-				radius: 8,
-				fillColor: color,
-				// fillColor: categories.options.race.color,
-				color: "white",
-				weight: 1,
-				opacity: 1,
-				fillOpacity: 0.9
-			}
-	thisMarker = L.circleMarker([options.lat,options.lon],markerOptions).bindPopup("<b>"+options.name+"</b>").addTo(layer2add).addTo(map);
+	{
+		radius: 8,
+		fillColor: color,
+		// fillColor: categories.options.race.color,
+		color: "white",
+		weight: 1,
+		opacity: 1,
+		fillOpacity: 0.9
+	}
+
+	thisMarker = L.circleMarker([options.lat,options.lon],markerOptions).bindPopup("<b>"+options.name+"</b>").addTo(layer2add);
+
+	wLayer.addTo(map);
+	bLayer.addTo(map);
+	hLayer.addTo(map);
+	oLayer.addTo(map);
 
 	if(options.race == 'W')
 	{
