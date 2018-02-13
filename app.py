@@ -17,7 +17,7 @@ from models import *
 class bookingSchema(ma.Schema):
     class Meta:
         # Fields to expose through api
-        fields = ('fid', 'desc_', 'slug','home_addre','x','y')
+        fields = ('fid', 'desc_', 'slug','sex','charge','age','home_addre','x','y')
         json_module = simplejson
 
 booking_schema = bookingSchema()
