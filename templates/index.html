@@ -6,6 +6,18 @@
 	body { margin:0; padding:0; }
 	#map { position:absolute; top:0; bottom:0; width:100%; }
 
+	#year {
+		position:absolute;
+		top: 0px;
+		left: 10px;		
+		z-index: 9999;
+		font-family: 'Courier New', Courier, monospace;
+		font-size: 6em;
+		opacity: .7;
+		font-weight: 900;
+		text-shadow: 0 0 10px #000000;
+		color: #ffffff;
+	}
 
 	.map-overlay {
 		z-index: 9999;
@@ -17,25 +29,81 @@
 		padding: 0px;
 		opacity: 0.9;
 	}
+	#basemaps {
+		z-index: 9999;
+		position: absolute;
+		bottom: 10px;
+		left: 10px;
+		padding: 0px;
+		opacity: 0.9;
+	}
 
+	#chart {
+		width: 300px; 
+		height: 300px;
+	}
+	.btn {
+		font-size: 1em;
+	}
+
+	.leaflet-top {
+		bottom: 100px !important;
+		top: unset;
+	}
 </style>
 
 
 <div id="map"></div>
-
+<div id="year"></div>
+<div id="basemaps">
+	<img id="basemap-dark" class="img-thumbnail" src="./static/images/dark.png">
+	<img id="basemap-light" class="img-thumbnail" src="./static/images/light.png">
+	<img id="basemap-sat" class="img-thumbnail" src="./static/images/sat.png">
+</div>
 <div class="map-overlay top card">
 	<div class="card-header">
 		<select class="form-control" id="neighborhood">
 				<option>--Choose a neighborhood--</option>
-			{% for neighborhood in neighborhoods %}
-				<option>{{neighborhood.slug}}</option>
-			{% endfor %}
+				{% for neighborhood in neighborhoods %}
+					<option>{{neighborhood.slug}}</option>
+				{% endfor %}
 		</select>
+		<br>
+		<button id="what-race" type="button" class="btn btn-primary btn-info btn-sm">
+			race
+		</button>
+		<button id="what-sex" type="button" class="btn btn-primary btn-info btn-sm">
+			sex
+		</button>
+		<button id="what-charge" type="button" class="btn btn-primary btn-info btn-sm">
+			charge
+		</button>
 
 	</div>
 	<div class="card-body" style="padding:10px 0px;margin: auto;">
-		<h6>Incarceration by race</h6>
-		<div id="chart" style="width: 300px; height: 300px;"></div>
+		<h6 id="chart-title"></h6>
+		<div id="chart" style=""></div>
+		<button id="play" type="button" class="btn btn-primary btn-light btn-sm">
+			Play
+		</button>
+		<button id="2012" type="button" class="btn btn-primary btn-info btn-sm">
+			2012
+		</button>
+		<button id="2013" type="button" class="btn btn-primary btn-info btn-sm">
+			2013
+		</button>
+		<button id="2014" type="button" class="btn btn-primary btn-info btn-sm">
+			2014
+		</button>
+		<button id="2015" type="button" class="btn btn-primary btn-info btn-sm">
+			2015
+		</button>
+		<button id="2016" type="button" class="btn btn-primary btn-info btn-sm">
+			2016
+		</button>
+		<button id="all" type="button" class="btn btn-primary btn-info btn-sm">
+			All
+		</button>
 	</div>
 </div>
 
@@ -43,67 +111,321 @@
 <!-- javascript -->
 <script>
 
-google.charts.load('current', {'packages':['corechart']});
+google.charts.load('current', {'packages':['corechart','bar']});
 google.charts.setOnLoadCallback(start);
 
-var mdh = {};
-mdh.neighborhood = "downtown";
+var mdh 					= {};
+mdh.years 					= ['2012','2013','2014','2015','2016']
+mdh.year 					= "";
+mdh.neighborhood 			= "downtown";
+mdh.data 					= {};
+mdh.data[mdh.neighborhood] 	= {};
 
+mdh.whatarewemapping 		= 'sex'; //sex, etc
+mdh.categories 				= ['M','F'];
+// mdh.whatarewemapping 		= 'race'; //sex, etc
+// mdh.categories 				= ['White','Black','Hispanic','Other'];
+
+mdh.categories_count 		= {};
+mdh.categoryLayer 			= {};
+
+
+$.each(mdh.categories,function(i,category){
+	mdh.categoryLayer[category] = new L.featureGroup();
+	mdh.categories_count[category] = 0;
+})
+
+mdh.chart = {};
+mdh.neighborhoodpolygon;
+
+// basemaps
+mdh.basemap_sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+	maxZoom: 15,
+	// opacity: 0.5
+});
+mdh.basemap_light = L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+	subdomains: 'abcd',
+	maxZoom: 15
+});
+mdh.basemap_dark = L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png', {
+		attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+		subdomains: 'abcd',
+		maxZoom: 15
+	});
+mdh.basemaps = [mdh.basemap_sat,mdh.basemap_light,mdh.basemap_dark];
+mdh.basemap_selected = 2;
+mdh.basemap = mdh.basemaps[mdh.basemap_selected]; //set the default to satellite
 var mapCoords = [34.0409135,-118.2433899]
 var map = L.map('map').setView(mapCoords, 13);
 
-var allMarkers = {
-	wMarkers: [],
-	bMarkers: [],
-	hMarkers: [],
-	oMarkers: []
-}
 
-var wLayer = new L.featureGroup();
-var bLayer = new L.featureGroup();
-var hLayer = new L.featureGroup();
-var oLayer = new L.featureGroup();
-
-var colors = ['#4E4BBD','#B9C34F','#FE2226','#FFBD3A']
-
+// var colors = ['#4E4BBD','#B9C34F','#FE2226','#FFBD3A']
+var colors = ["#1f77b4","#ff7f0e","#2ca02c","#d62728","#9467bd","#8c564b","#e377c2","#7f7f7f","#bcbd22","#17becf"]
 var chartdata = [];
 
 function start()
 {
+	drawNeighborhood();
+	drawYear();
 
+	// drop down
 	$('#neighborhood').on('change', function(){
 		var selected = $(this).find("option:selected").val();
-		console.log(selected)
 		mdh.neighborhood = selected;
-		getMarkers();
-
+		drawNeighborhood();
+		// only fetch data if it has not been requested previously
+		if(typeof(mdh.data[mdh.neighborhood]) == 'undefined')
+		{
+			mdh.data[mdh.neighborhood] = {};
+			getData();
+		}
+		else
+		{
+			console.log('data already exists, so going straight to getMarkers...')
+			getMarkers();
+		}
 	});
 
-	console.log('init')
-
-	// basemap
-
-	mdh.basemap_bw = L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png', {
-		attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
-		subdomains: 'abcd',
-		maxZoom: 17
-	});
-	mdh.basemap_sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-		maxZoom: 17});
 	
-	mdh.basemap_sat.addTo(map);
-
+	mdh.basemap.addTo(map);
 
 	var popup = L.popup();
+
+	getData();
+
+	$("#play").click(function(){
+		playYears();
+	});
+	$("#2012").click(function(){
+		$('.btn').removeClass('active');
+		$(this).addClass('active');
+		mdh.year = 2012;
+		drawYear();
+		getMarkers();
+		console.log('data for 2012')
+	})
+	$("#2013").click(function(){
+		$('.btn').removeClass('active');
+		$(this).addClass('active');
+		mdh.year = 2013;
+		drawYear();
+		getMarkers();
+		console.log('data for 2013')
+	})
+	$("#2014").click(function(){
+		$('.btn').removeClass('active');
+		$(this).addClass('active');
+		mdh.year = 2014;
+		drawYear();
+		getMarkers();
+		console.log('data for 2014')
+	})
+	$("#2015").click(function(){
+		$('.btn').removeClass('active');
+		$(this).addClass('active');
+		mdh.year = 2015;
+		drawYear();
+		getMarkers();
+		console.log('data for 2015')
+	})
+	$("#2016").click(function(){
+		$('.btn').removeClass('active');
+		$(this).addClass('active');
+		mdh.year = 2016;
+		drawYear();
+		getMarkers();
+		console.log('data for 2016')
+	})
+	$("#all").click(function(){
+		$('.btn').removeClass('active');
+		$(this).addClass('active');
+		mdh.year = '';
+		drawYear();
+		getMarkers();
+	})
+
+	// basemap switcher
+	$('#basemap-sat').click(function(){
+		changeBaseMap(0)
+	});
+	$('#basemap-light').click(function(){
+		changeBaseMap(1)
+	});
+	$('#basemap-dark').click(function(){
+		changeBaseMap(2)
+	});
+
+	// what we map switcher
+	$('#what-race').click(function(){
+		mdh.whatarewemapping = 'race'
+		changeWhatWeAreMapping();
+	});
+	$('#what-sex').click(function(){
+		mdh.whatarewemapping = 'sex'
+		changeWhatWeAreMapping();
+	});
+	$('#what-charge').click(function(){
+		mdh.whatarewemapping = 'charge'
+		changeWhatWeAreMapping();
+	});
+}
+
+var changeWhatWeAreMapping = function()
+{
+	clearMarkers();
+
+	if(mdh.whatarewemapping == 'race')
+	{
+		mdh.categories = ['White', 'Black', 'Hispanic', 'Other'];
+	}
+	else if (mdh.whatarewemapping == 'sex')
+	{
+		mdh.categories = ['M','F'];
+	}
+	else if (mdh.whatarewemapping == 'charge')
+	{
+		mdh.categories = ['POSSESSION CONTROLLED SUBSTANCE','DUI ALCOHOL/DRUG W/PRIORS','BURGLARY','CORPORAL INJURY ON SPOUSE/COHABITANT/ETC','POSSESSION NARCOTIC CONTROLLED SUBSTANCE','Other'];
+	}
+	$.each(mdh.categories, function (i, category) {
+		mdh.categoryLayer[category] = new L.featureGroup();
+		mdh.categories_count[category] = 0;
+	})
 
 	getMarkers();
 }
 
-var drawChart = function(chartdata)
+var drawYear = function()
+{
+	if(mdh.year == '')
+	{
+		$('#year').html('2012-2016');
+	}
+	else
+	{
+		$('#year').html(mdh.year);
+	}
+}
+var getData = function()
+{
+	console.log('getting data')
+	$.each(mdh.years,function(i,val){
+		mdh.data[mdh.neighborhood][val] = [];
+	})
+	$.getJSON("/"+mdh.neighborhood+"/bookings",function(data){
+		$.each(data,function(i,val){
+			mdh.data[mdh.neighborhood][val.year].push(val);
+		});
+		getMarkers();
+	})
+}
+
+var changeBaseMap = function(basemapid) {
+	mdh.basemap_selected = basemapid;
+	map.removeLayer(mdh.basemap);
+	mdh.basemap = mdh.basemaps[basemapid];
+	map.addLayer(mdh.basemap);
+	// redraw neighborhood
+	drawNeighborhood();
+}
+
+var clearMarkers = function ()
+{
+	// clear existing markers
+	$.each(mdh.categories, function (i, category) {
+		mdh.categoryLayer[category].clearLayers();
+		mdh.categories_count[category] = 0;
+	})
+}
+
+var getMarkers = function () {
+	console.log('getting markers')
+
+	clearMarkers();
+
+	// draw the neighborhood
+	if(mdh.year == '')
+	{
+		$.each(mdh.years,function(j,year){
+			$.each(mdh.data[mdh.neighborhood][year], function (i, val) {
+				options = {
+					lat: val.latitude,
+					lon: val.longitude,
+					charge: val.charge_des,
+					race: val.race,
+					sex: val.sex
+				}
+				addMarker2Layer(options);
+			})
+		})
+	}
+	else
+	{
+		$.each(mdh.data[mdh.neighborhood][mdh.year], function (i, val) {
+			options = {
+				lat: val.latitude,
+				lon: val.longitude,
+				charge: val.charge_des,
+				race: val.race,
+				sex: val.sex
+			}
+			addMarker2Layer(options);
+		})
+	}
+
+	// add each category layer to map
+	$.each(mdh.categories, function (i, category) {
+		mdh.categoryLayer[category].addTo(map);
+	})
+
+	// drawPieChart(chartdata);
+	drawStackedChart();
+	// })
+}
+
+var drawNeighborhood = function()
+{
+	// first remove existing polygon
+	console.log(mdh.neighborhoodpolygon);
+	$('#chart-title').html(mdh.neighborhood.toUpperCase())
+	if(typeof mdh.neighborhoodpolygon !== "undefined")
+	{
+		map.removeLayer(mdh.neighborhoodpolygon);
+	}
+
+	if(mdh.basemap_selected == 1)
+	{
+		var neighborhood_color = 'black';
+	}
+	else
+	{
+		var neighborhood_color = 'white';
+	}
+	
+	// get the geojson and draw the neighborhood
+	$.getJSON('../static/geojson/neighborhoods.geojson',function(data){
+		$.each(data.features,function(i,val){
+			if(val.properties.slug == mdh.neighborhood)
+			{
+				options = {
+					color: neighborhood_color,
+					fillOpacity: 0.1,
+					opacity: 0.8
+				}
+				mdh.neighborhoodpolygon = L.geoJSON(val,options);
+				mdh.neighborhoodpolygon.addTo(map);
+				map.fitBounds(mdh.neighborhoodpolygon.getBounds())
+			}
+		})
+			mdh.neighborhoodpolygon.bringToBack();
+
+	});
+}
+
+var drawPieChart = function(chartdata)
 {
 	mdh.chartdata = google.visualization.arrayToDataTable(chartdata);
-
-	console.log(mdh.chartdata)
 
 	var options = {
 		// title: 'Incarceration by race',
@@ -111,7 +433,8 @@ var drawChart = function(chartdata)
 		legend: 'none',
 		colors: colors,
 		chartArea:{top:10,width:'100%',height:'80%'},
-		is3D: true
+		is3D: true,
+		// tooltip: {isHtml: true},
 	};
 
 	var chart = new google.visualization.PieChart(document.getElementById('chart'));
@@ -121,121 +444,186 @@ var drawChart = function(chartdata)
 		hoverPie(mdh.chartdata.getFormattedValue(data.row,0))
 	});
 	google.visualization.events.addListener(chart, 'onmouseout', function(data){
-		wLayer.addTo(map);
-		bLayer.addTo(map);
-		hLayer.addTo(map);
-		oLayer.addTo(map);
+		// wLayer.addTo(map);
+		// bLayer.addTo(map);
+		// hLayer.addTo(map);
+		// oLayer.addTo(map);
 	});
 }
 
-var hoverPie = function(race)
+var playYears = function()
 {
-	if(race == 'White')
-	{
-		wLayer.addTo(map);
-		map.removeLayer(bLayer);
-		map.removeLayer(hLayer);
-		map.removeLayer(oLayer);
-	}
-	else if (race == 'Black')
-	{
-		bLayer.addTo(map);
-		map.removeLayer(wLayer);
-		map.removeLayer(hLayer);
-		map.removeLayer(oLayer);
-	}
-	else if (race == 'Hispanic')
-	{
-		hLayer.addTo(map);
-		map.removeLayer(bLayer);
-		map.removeLayer(wLayer);
-		map.removeLayer(oLayer);
-	}
-	else if (race == 'Other')
-	{
-		oLayer.addTo(map);
-		map.removeLayer(bLayer);
-		map.removeLayer(hLayer);
-		map.removeLayer(wLayer);
-	}
-
+	$('#2012').click()
+	setTimeout(function () {
+		$('#2013').click()
+		setTimeout(function () {
+			$('#2014').click()
+			setTimeout(function () {
+				$('#2015').click()
+				setTimeout(function(){
+					$('#2016').click()
+				},1000);
+			},1000);
+		}, 1000);
+	}, 1000);
 }
 
-var getMarkers = function()
+var drawStackedChart = function()
 {
-	// clear existing markers
-	wLayer.clearLayers();
-	bLayer.clearLayers();
-	hLayer.clearLayers();
-	oLayer.clearLayers();
 
-	allMarkers.wMarkers = [];
-	allMarkers.bMarkers = [];
-	allMarkers.hMarkers = [];
-	allMarkers.oMarkers = [];
+	// Define the chart to be drawn.
+	// let's create the data
 
-	$.getJSON("/"+mdh.neighborhood+"/bookings",function(data){
-		$.each(data,function(i,val){
-			options = {
-				lat : val.y,
-				lon : val.x,
-				name : val.home_addre,
-				race : val.desc_
+	chartdata = [["year"]];
+	$.each(mdh.categories, function (i, category) {
+		chartdata[0].push(category);
+		// mdh.categoryLayer[category].addTo(map);
+		// chartdata_array = [category, mdh.categories_count[category]];
+		// chartdata.push(chartdata_array)
+	})
+
+	var counter = {};
+
+	$.each(mdh.years,function(i,year){
+		// set the counters to 0
+		$.each(mdh.categories, function (i, category) {
+			counter[category] = 0;
+		});
+
+		chartdata_array = [year];
+		$.each(mdh.data[mdh.neighborhood][year],function(j,booking){
+			if(mdh.whatarewemapping == 'race')
+			{
+				if (booking.race == 'W') {
+					counter['White']++;
+				}
+				else if (booking.race == 'B') {
+					counter['Black']++;
+				}
+				else if (booking.race == 'H') {
+					counter['Hispanic']++;
+				}
+				else {
+					counter['Other']++;
+				}
 			}
-			addMarker(options);
+			else
+			{
+				$.each(mdh.categories,function(i,category){
+					if(mdh.whatarewemapping == 'charge')
+					{
+						fieldname = 'charge_des'
+					}
+					else
+					{
+						fieldname = mdh.whatarewemapping;
+					}
+					if(booking[fieldname] == category) {
+					// if(booking[mdh.whatarewemapping] == category) {
+						counter[category]++
+					}
+				})
+			}
 		})
 
-		allMarkers.count = allMarkers.wMarkers.length + allMarkers.bMarkers.length + allMarkers.hMarkers.length + allMarkers.oMarkers.length;
-
-		chartdata = [
-			["race","count"],
-			[ "White",allMarkers.wMarkers.length ],
-			[ "Black",allMarkers.bMarkers.length ],
-			[ "Hispanic",allMarkers.hMarkers.length ],
-			[ "Other",allMarkers.oMarkers.length]
-		]
-		// console.log(chartdata)
-	 	drawChart(chartdata);
-
-		map.fitBounds(wLayer.getBounds())
+		$.each(mdh.categories, function (i, category) {
+			chartdata_array.push(counter[category]);
+		});
+		chartdata.push(chartdata_array);
 	})
+	mdh.chartdata = google.visualization.arrayToDataTable(
+		chartdata
+	);
+	var options = { 
+		title: 'Incarceration by '+mdh.whatarewemapping, 
+		isStacked: true,
+		colors: colors,
+		chartArea: { top: 40, width: '100%', height: '80%', bottom: 40 },
+		legend: {
+			position: 'top'
+		}
+	};
+
+	// Instantiate and draw the chart.
+	var chart = new google.visualization.ColumnChart(document.getElementById('chart'));
+	chart.draw(mdh.chartdata, options);
+	google.visualization.events.addListener(chart, 'onmouseout', function (data) {
+		console.log('mouse out')
+		$.each(mdh.categories, function (i, category) {
+			mdh.categoryLayer[category].addTo(map);
+		});
+	});
+	google.visualization.events.addListener(chart, 'onmouseover', function (data) {
+		console.log('mouseover')
+		mdh.year = mdh.years[data.row];
+		$('.btn').removeClass('active');
+		$('.'+mdh.year).addClass('active');
+		// mdh.year = 2012;
+		drawYear();
+		getMarkers();
+
+		hoverPie(mdh.categories[data.column - 1])
+	});
+
 }
 
-function addMarker(options){
-	// Add marker to map at click location; add popup window
-	var categories = {
-		W: {
-			color: '#4E4BBD',
-			layer: wLayer
-		},
-		
 
-	}
+var hoverPie = function(category2isolate)
+{
 
-	if(options.race == 'W')
+	$.each(mdh.categories,function(i,category){
+		if(category == category2isolate)
+		{
+			mdh.categoryLayer[category].addTo(map);		
+		}
+		else
+		{
+			map.removeLayer(mdh.categoryLayer[category]);
+		}
+	})
+
+}
+
+function addMarker2Layer(options){
+
+	if(mdh.whatarewemapping == 'race')
 	{
-		color = '#4E4BBD'
-		layer2add = wLayer
+		if (options.race == 'W') {
+			color = colors[0]
+			layer2add = mdh.categoryLayer['White']
+			mdh.categories_count['White']++;
+		}
+		else if (options.race == 'B') {
+			color = colors[1]
+			layer2add = mdh.categoryLayer['Black']
+			mdh.categories_count['Black']++;
+		}
+		else if (options.race == 'H') {
+			color = colors[2]
+			layer2add = mdh.categoryLayer['Hispanic']
+			mdh.categories_count['Hispanic']++;
+		}
+		else {
+			color = colors[3]
+			layer2add = mdh.categoryLayer['Other']
+			mdh.categories_count['Other']++;
+		}
 	}
-	else if (options.race == 'B')
+	else
 	{
-		color = '#B9C34F'
-		layer2add = bLayer
-	}
-	else if (options.race == 'H')
-	{
-		color = '#FE2226'
-		layer2add = hLayer
-	}
-	else 
-	{
-		color = '#FFBD3A'
-		layer2add = oLayer
+		$.each(mdh.categories,function(i,category){
+			if (options[mdh.whatarewemapping] == category)
+			{
+				color = colors[i];
+				layer2add = mdh.categoryLayer[category];
+				mdh.categories_count[category]++;
+			}
+		})
 	}
 
 	markerOptions=
 	{
-		radius: 8,
+		radius: 6,
 		fillColor: color,
 		// fillColor: categories.options.race.color,
 		color: "white",
@@ -245,29 +633,6 @@ function addMarker(options){
 	}
 
 	thisMarker = L.circleMarker([options.lat,options.lon],markerOptions).bindPopup("<b>"+options.name+"</b>").addTo(layer2add);
-
-	wLayer.addTo(map);
-	bLayer.addTo(map);
-	hLayer.addTo(map);
-	oLayer.addTo(map);
-
-	if(options.race == 'W')
-	{
-		allMarkers.wMarkers.push(thisMarker);
-	}
-	else if (options.race == 'B')
-	{
-		allMarkers.bMarkers.push(thisMarker);
-	}
-	else if (options.race == 'H')
-	{
-		allMarkers.hMarkers.push(thisMarker);
-	}
-	else 
-	{
-		allMarkers.oMarkers.push(thisMarker);
-	}
-
 
 }
 
