@@ -26,10 +26,22 @@ pip install psycopg2
 
 ## create database
 
+make sure you have a postgresql database up and running by installing postgresql:
+
+https://www.postgresql.org/download/
+
+we will use peewee to connect to the database
+
+store your configurations in a file so that it is not made public in a file like: config.py
 
 ## create templates
 
+after connecting to the database we will return the queries as variables and then pass them into our jinja2 templates.
+
 ## establish API
 
+we can handle user requests to different endpoint by modifying the routing.
 
 ## migrate to production server
+
+depending on the platform, we can either host our app on heroku or on a private webserver running either linux or windows server.
